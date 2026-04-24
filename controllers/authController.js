@@ -115,3 +115,53 @@ export const getMe = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ==============================
+// 🔐 Reset Password (NEW)
+// ==============================
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        error: "Email and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters",
+      });
+    }
+
+    // Check if user exists
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await db.query(
+      "UPDATE users SET password = ? WHERE email = ?",
+      [hashedPassword, email]
+    );
+
+    res.json({
+      message: "Password reset successful",
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
